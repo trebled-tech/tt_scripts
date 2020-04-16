@@ -1,0 +1,53 @@
+CentOS 8.1 on a Dell Latitude D520
+"abandon hope all ye who enter here"
+
+introduction:
+
+As part of my ongoing efforts, and related diversions, since 4/3 to create an OpenStack cluster with most of the hardware I have kicking around, I was working on the oldest member of my stable about a week ago, and thought to try to get my ASUSTEK MB169B+ DisplayLink display to work with the D520.
+
+The DisplayLink source code wouldn't compile due to some library being too old in CentOS 7.7. Since I'd already moved to CentOS 8.1 on several of the would-be OpenStack cluster members for various reasons, I figured I'd installed it on the D520 to see if the unfulfilled dependency for DisplayLink could be addressed that way.
+
+issues:
+1. poor graphics performance
+2. Broadcom BCM4401 Ethernet NIC not recognized (b44)
+3. preferred TP-Link TL-WN725N (v1) wifi dongle not recognized (rtl8188eus)
+
+resolutions and workarounds
+1. poor graphics performance
+
+hallmark was stuttery mouse movement, delayed responsiveness, and slow compositing in Gnome
+journalctl showed that /usr/lib64/dri/i915_dri.so was not being found
+there's is no package available in any of the following repos which provides this DRI lib
+  CentOS-8 - AppStream
+  CentOS-8 - Base
+  CentOS-8 - PowerTools
+  ELRepo.org Community Enterprise Linux Repository - el8
+  Extra Packages for Enterprise Linux 8 - Playground - x86_64
+  CentOS-8 - Extras
+  RPM Fusion for EL 8 - Free - Updates
+  RPM Fusion for EL 8 - Nonfree - Updates
+
+efforts to build the missing component
+  external-mesa (https://github.com/intel/external-mesa)
+    fails on requirement for libdrm >= 2.4.100 (CentOS delivers 2.4.98)
+  libdrm (https://gitlab.freedesktop.org/mesa/drm)
+    fails on requirement for *fill this in*
+
+subsequent crazy idea
+  while it goes against everything I know about Linux, I figured the worst that could happen is that it wouldn't work:
+    copy the i915_dri.so object from a CentOS 7.7 system and just see what happens
+    it turns out this works - Xorg loads the object without complaint, and performance is greatly improved
+
+2. Broadcom BCM4401
+
+The Broadcom BCM4401 chipset in the D520 requires the b44.ko kernel module
+RHEL decided to stop including this aged 10/100 NIC in the modules delivered in CentOS 8.x
+
+see if a different kernel includes it
+  I'd happened on info previously that the ELrepo repo includes newer mainline kernels for CentOS 7.x, so I thought I'd check this out for CentOS 8.1
+  ELrepo does indeed provide kernel-ml 5.6.4, which is dramatically newer than the 4.18.0 provided with CentOS 8.1
+  I installed this kernel, and two devices started working without further ado
+    Broadcom Inc. and subsidiaries BCM4401-B0 100Base-TX (b44)
+    ALFA AWUS036NHR (rtl8188ru)
+
+due to other issues running the much newer kernel, I decided to try compiling the b44 kernel module under the default CentOS 8.1 kernel

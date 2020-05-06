@@ -1,0 +1,27 @@
+#!/usr/bin/expect
+
+#components of arbitrary command run via expect
+
+# define hostlist
+set hostlistfile="~/Desktop/hostlist"
+
+# define cmd_to_run
+set cmd2run=`find ~ -name "arbitary_filename.sh"`
+
+# define ssh_user
+set ssh_user="mike"
+
+define ssh_password
+set ssh_passwd=`cat ~/Desktop/passwdfile`
+
+# log in as SSH user
+for i in `cat ~/Desktop/hostlist`; do
+	spawn ssh $ssh_user@$i
+	expect "Password:"
+	send "$ssh_passwd\r";
+	expect Prompt$
+	send "pbrun cloud-root -u mike"
+	expect Prompt$
+	spawn $cmd2run
+	interact
+done
